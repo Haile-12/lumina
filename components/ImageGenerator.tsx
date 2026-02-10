@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { generateImage } from '../services/geminiService';
 import { AspectRatio, GenerationSettings, GeneratedImage, StylePreset } from '../types';
 
 interface ImageGeneratorProps {
   onImageGenerated: (image: GeneratedImage) => void;
+  remotePrompt?: string | null;
+  autoGenerate?: boolean;
 }
 
 const STYLE_PRESETS: StylePreset[] = [
@@ -16,7 +18,7 @@ const STYLE_PRESETS: StylePreset[] = [
   { name: 'Minimalist', suffix: ', minimalist style, clean lines, flat design, vector art', icon: 'fa-feather' },
 ];
 
-const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated }) => {
+const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated, remotePrompt, autoGenerate }) => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +28,22 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated }) => 
     model: 'standard'
   });
   const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const autoTriggered = useRef(false);
+
+  // Handle prompt from URL parameters
+  useEffect(() => {
+    if (remotePrompt) {
+      setPrompt(remotePrompt);
+    }
+  }, [remotePrompt]);
+
+  // Handle Auto-generation
+  useEffect(() => {
+    if (autoGenerate && prompt && !isGenerating && !autoTriggered.current) {
+      autoTriggered.current = true;
+      handleGenerate();
+    }
+  }, [autoGenerate, prompt]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -34,7 +52,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated }) => 
     setIsGenerating(true);
 
     try {
-      if (settings.model === 'pro') {
+      if (settings.model === 'pro' && window.aistudio) {
         const hasKey = await window.aistudio.hasSelectedApiKey();
         if (!hasKey) {
           await window.aistudio.openSelectKey();
@@ -60,9 +78,9 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated }) => 
 
       onImageGenerated(newImage);
     } catch (err: any) {
-      if (err.message === 'MODEL_NOT_FOUND') {
-        setError("There was an issue with the API key or model access. Please try selecting your API key again.");
-        await window.aistudio.openSelectKey();
+      if (err.message === 'MODEL_NOT_FOUND' || (err.message && err.message.includes("Requested entity was not found"))) {
+        setError("API access error. Please select a valid paid project API key via the settings dialog.");
+        if (window.aistudio) await window.aistudio.openSelectKey();
       } else {
         setError(err.message || "Something went wrong while generating your art.");
       }
@@ -81,6 +99,13 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated }) => 
 
   return (
     <div className="space-y-8">
+      {autoGenerate && !currentImage && isGenerating && (
+        <div className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl flex items-center justify-center gap-3 animate-pulse">
+           <i className="fa-solid fa-bolt-lightning text-indigo-400"></i>
+           <span className="text-sm font-bold text-indigo-300 uppercase tracking-widest">Automated Generation in Progress</span>
+        </div>
+      )}
+
       <div className="glass-effect rounded-3xl p-6 md:p-8 shadow-2xl">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
@@ -157,6 +182,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated }) => 
           <div className="lg:col-span-8 flex flex-col h-full">
             <div className="relative group">
               <textarea
+                id="prompt-input"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Describe your masterpiece... e.g., 'A bioluminescent forest with crystal streams'"
@@ -175,6 +201,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated }) => 
 
             <div className="mt-4">
               <button
+                id="generate-button"
                 disabled={isGenerating || !prompt.trim()}
                 onClick={handleGenerate}
                 className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] ${
@@ -210,7 +237,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated }) => 
       {/* Main Preview */}
       {(currentImage || isGenerating) && (
         <div className="flex flex-col items-center">
-          <div className={`relative max-w-2xl w-full rounded-2xl overflow-hidden shadow-2xl border border-slate-800 ${isGenerating ? 'loading-gradient min-h-[400px]' : 'bg-slate-900'}`}>
+          <div id="generation-container" className={`relative max-w-2xl w-full rounded-2xl overflow-hidden shadow-2xl border border-slate-800 ${isGenerating ? 'loading-gradient min-h-[400px]' : 'bg-slate-900'}`}>
             {isGenerating ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
                 <div className="w-16 h-16 rounded-full border-4 border-slate-700 border-t-indigo-500 animate-spin"></div>
@@ -219,6 +246,7 @@ const ImageGenerator: React.FC<ImageGeneratorProps> = ({ onImageGenerated }) => 
             ) : currentImage ? (
               <>
                 <img 
+                  id="result-image"
                   src={currentImage} 
                   alt="Generated" 
                   className="w-full h-auto object-contain animate-in fade-in zoom-in duration-500" 

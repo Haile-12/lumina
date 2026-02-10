@@ -39,7 +39,7 @@ declare global {
      * Use the AIStudio interface for the aistudio property.
      * Modifiers must match between declarations of the same interface.
      */
-    // Removed readonly modifier to match the platform's global window.aistudio definition and resolve modifier mismatch
-    aistudio: AIStudio;
+    // Fix: Added readonly modifier to match the platform's global window.aistudio definition and resolve modifier mismatch
+    readonly aistudio: AIStudio;
   }
 }

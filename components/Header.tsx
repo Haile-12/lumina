@@ -25,7 +25,7 @@ const Header: React.FC<HeaderProps> = ({ onOpenAutomation }) => {
           </h1>
         </div>
         
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-4">
           <button 
             onClick={() => scrollTo('inspiration')} 
             className="text-slate-300 hover:text-white transition-colors text-sm font-medium"
@@ -34,17 +34,17 @@ const Header: React.FC<HeaderProps> = ({ onOpenAutomation }) => {
           </button>
           <button 
             onClick={onOpenAutomation}
-            className="text-slate-300 hover:text-indigo-400 transition-colors text-sm font-medium flex items-center gap-2"
+            className="text-slate-300 hover:text-indigo-400 transition-colors text-sm font-medium flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800/50"
           >
             <i className="fa-solid fa-code text-xs"></i>
             Automation
           </button>
-          <div className="h-6 w-px bg-slate-800 mx-2"></div>
+          <div className="h-6 w-px bg-slate-800 mx-1"></div>
           <a 
             href="https://ai.google.dev/gemini-api/docs" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors text-sm font-medium border border-slate-700"
+            className="px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm font-bold border border-indigo-500/50 text-white"
           >
             Docs
           </a>

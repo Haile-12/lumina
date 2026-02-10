@@ -18,14 +18,29 @@ const INSPIRATION_PROMPTS = [
 const App: React.FC = () => {
   const [history, setHistory] = useState<GeneratedImage[]>([]);
   const [isAutomationOpen, setIsAutomationOpen] = useState(false);
+  const [initialPrompt, setInitialPrompt] = useState<string | null>(null);
+  const [shouldAutoGenerate, setShouldAutoGenerate] = useState(false);
 
   useEffect(() => {
+    // Load history
     const savedHistory = localStorage.getItem('lumina_history');
     if (savedHistory) {
       try {
         setHistory(JSON.parse(savedHistory));
       } catch (e) {
         console.error("Failed to parse history", e);
+      }
+    }
+
+    // Check for "Remote Call" via URL Params
+    const params = new URLSearchParams(window.location.search);
+    const remotePrompt = params.get('prompt');
+    const auto = params.get('auto') === 'true';
+    
+    if (remotePrompt) {
+      setInitialPrompt(decodeURIComponent(remotePrompt));
+      if (auto) {
+        setShouldAutoGenerate(true);
       }
     }
   }, []);
@@ -50,12 +65,18 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col pb-12 scroll-smooth">
-      <Header onOpenAutomation={() => setIsAutomationOpen(true)} />
+      <Header 
+        onOpenAutomation={() => setIsAutomationOpen(true)} 
+      />
       
       <main className="flex-grow container mx-auto px-4 py-8 space-y-16 max-w-6xl">
         {/* Generator Section */}
         <section id="create">
-          <ImageGenerator onImageGenerated={addImageToHistory} />
+          <ImageGenerator 
+            onImageGenerated={addImageToHistory} 
+            remotePrompt={initialPrompt}
+            autoGenerate={shouldAutoGenerate}
+          />
         </section>
 
         {/* Inspiration Section */}
